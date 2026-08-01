@@ -2,6 +2,14 @@
 ### AI-Powered Traffic Volume & Traffic Condition Prediction
 
 
+
+## 🚀 Live Demo
+
+**🌐 Web App:** https://trafficsense.streamlit.app/
+
+**📂 GitHub Repository:** https://github.com/yaswanth1723/TrafficSense
+
+
 ![Python](https://img.shields.io/badge/Python-3.10+-blue)
 ![XGBoost](https://img.shields.io/badge/XGBoost-ML-success)
 ![Streamlit](https://img.shields.io/badge/Streamlit-App-red)
