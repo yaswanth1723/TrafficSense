@@ -1,4 +1,11 @@
-# 🚦 Metro Interstate Traffic Volume Prediction
+# 🚦 TrafficSense
+### AI-Powered Traffic Volume & Traffic Condition Prediction
+
+
+![Python](https://img.shields.io/badge/Python-3.10+-blue)
+![XGBoost](https://img.shields.io/badge/XGBoost-ML-success)
+![Streamlit](https://img.shields.io/badge/Streamlit-App-red)
+
 
 An end-to-end machine learning project that predicts **hourly interstate traffic volume** and **traffic congestion level** using historical weather and time data, deployed as an interactive Streamlit web application.
 
@@ -55,7 +62,7 @@ After cleaning and feature engineering, the model-ready dataset includes:
 - **Cyclical time features:** `hour_sin`/`hour_cos`, `month_sin`/`month_cos` — encode hour and month on a circular scale so, e.g., 11 PM and midnight are recognized as adjacent
 - **Derived target:** `traffic_level` (Low / Moderate / High), built from quantile (tercile) thresholds on `traffic_volume`
 
-Full details are in [`notebooks/01_EDA_and_Preprocessing.ipynb`](notebooks/01_EDA_and_Preprocessing.ipynb).
+Full details are in [`01_EDA_and_Preprocessing.ipynb`](01_EDA_and_Preprocessing.ipynb).
 
 ---
 
@@ -115,20 +122,14 @@ Only these two models are saved (`models/xgb_regressor.pkl`, `models/xgb_classif
 
 ---
 
-## 🖼️ Screenshots
 
-> _Add screenshots of the Streamlit app here once deployed, e.g.:_
->
-> `assets/app_home.png`, `assets/app_prediction.png`
-
----
 
 ## ⚙️ Installation
 
 ```bash
 # Clone the repository
-git clone https://github.com/<your-username>/Traffic-Prediction-ML.git
-cd Traffic-Prediction-ML
+git clone https://github.com/yaswanth1723/TrafficSense.git
+cd TrafficSense
 
 # Create and activate a virtual environment (recommended)
 python -m venv venv
@@ -141,8 +142,8 @@ pip install -r requirements.txt
 To regenerate the models from scratch, run the notebooks in order:
 
 ```bash
-jupyter notebook notebooks/01_EDA_and_Preprocessing.ipynb
-jupyter notebook notebooks/02_Model_Training.ipynb
+jupyter notebook 01_EDA_and_Preprocessing.ipynb
+jupyter notebook 02_Model_Training.ipynb
 ```
 
 ---
