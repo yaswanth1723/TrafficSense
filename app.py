@@ -31,7 +31,7 @@ st.set_page_config(
 # -----------------------------------------------------------------
 MODEL_FEATURE_ORDER = [
     "temp", "rain_1h", "snow_1h", "clouds_all", "is_holiday",
-    "year", "month", "day", "hour", "day_of_week", "is_weekend",
+    "month", "day", "hour", "day_of_week", "is_weekend",
     "hour_sin", "hour_cos", "month_sin", "month_cos",
     "weather_Clouds", "weather_Drizzle", "weather_Fog", "weather_Haze",
     "weather_Mist", "weather_Rain", "weather_Smoke", "weather_Snow",
@@ -79,7 +79,7 @@ def build_feature_row(
 
     timestamp = dt.datetime.combine(input_date, input_time)
 
-    year = timestamp.year
+    
     month = timestamp.month
     day = timestamp.day
     hour = timestamp.hour
@@ -100,7 +100,6 @@ def build_feature_row(
         "snow_1h": snow_1h,
         "clouds_all": clouds_all,
         "is_holiday": is_holiday,
-        "year": year,
         "month": month,
         "day": day,
         "hour": hour,
@@ -165,6 +164,8 @@ if st.button("Predict Traffic", type="primary", use_container_width=True):
         holiday=holiday,
         weather=weather,
     )
+
+    
 
     predicted_volume = regressor.predict(features_df)[0]
     predicted_level_encoded = classifier.predict(features_df)[0]
