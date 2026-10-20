@@ -10,7 +10,7 @@
 **📂 GitHub Repository:** https://github.com/yaswanth1723/TrafficSense
 
 
-![Python](https://img.shields.io/badge/Python-3.10+-blue)
+![Python](https://img.shields.io/badge/Python-3.12-blue)
 ![XGBoost](https://img.shields.io/badge/XGBoost-ML-success)
 ![Streamlit](https://img.shields.io/badge/Streamlit-App-red)
 
@@ -184,6 +184,8 @@ This project is open source and available for personal and educational use.
 ## Functional fixes and verification (20 October 2026)
 
 Use the pinned XGBoost 3.3.0 runtime with the regenerated artifacts. Run the notebooks
+using Python 3.12. In Streamlit Community Cloud, select Python 3.12 in App settings;
+XGBoost 3.3.0 cannot install under Python 3.11. Run the notebooks
 from the project root. Holiday markers now apply to all recorded hours on that date;
 the app's holiday input remains a manual override. Regression evaluation and display
 both clamp negative counts to zero.

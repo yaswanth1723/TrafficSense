@@ -99,9 +99,11 @@ streamlit run app.py
 - Duplicate timestamps still retain the notebook's original sorted-first weather
   policy. Conflicting weather readings exist, but their targets agree. No automatic
   aggregation was introduced.
-- Python 3.11 (declared in runtime.txt), clean dependency installation, deployment,
-  and browser visual layout were not tested. Streamlit interaction was tested with
-  its official AppTest harness; the server was additionally checked over HTTP.
+- Initial local checks did not test the deployment. Subsequent live logs showed
+  Python 3.11.17 could not install XGBoost 3.3.0, which requires Python >=3.12.
+  Changed the existing Community Cloud app's Python setting to 3.12 and aligned
+  runtime.txt and README. The new deployment logs confirm Python 3.12.15 and
+  successful installation of all 50 dependencies, including XGBoost 3.3.0.
 - Pickle artifacts remain version-dependent. A portable serialization migration,
   automated calendars, evaluation redesign and production hardening are outside
   this targeted functional fix.
