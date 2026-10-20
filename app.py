@@ -10,12 +10,14 @@ Only the production models are loaded:
 """
 
 import datetime as dt
+import json
 from pathlib import Path
 
 import joblib
 import numpy as np
 import pandas as pd
 import streamlit as st
+from prediction_support import range_warnings
 
 # -----------------------------------------------------------------
 # Page configuration
@@ -65,6 +67,11 @@ def load_models():
     regressor = joblib.load(MODEL_DIR / "xgb_regressor.pkl")
     classifier = joblib.load(MODEL_DIR / "xgb_classifier.pkl")
     return regressor, classifier
+
+
+@st.cache_data
+def load_training_ranges():
+    return json.loads((MODEL_DIR / 'training_ranges.json').read_text(encoding='utf8'))
 
 
 def build_feature_row(
@@ -137,6 +144,7 @@ st.caption(
 
 try:
     regressor, classifier = load_models()
+    training_ranges = load_training_ranges()
 except Exception as exc:
     st.error(f"Could not load models. Install requirements.txt and run both notebooks from the project folder. Details: {exc}")
     st.stop()
@@ -159,6 +167,12 @@ with col3:
 with col4:
     snow_1h = st.number_input("Snow in last 1 hour (mm)", min_value=0.0, max_value=50.0, value=0.0, step=0.1)
 
+for message in range_warnings(
+    dict(temp=temp_celsius + 273.15, rain_1h=rain_1h,
+         snow_1h=snow_1h, clouds_all=clouds_all), training_ranges
+):
+    st.warning(message)
+
 st.divider()
 
 if st.button("Predict Traffic", type="primary", use_container_width=True):
@@ -180,6 +194,12 @@ if st.button("Predict Traffic", type="primary", use_container_width=True):
         st.error("Prediction unavailable for these inputs.")
         st.stop()
     predicted_volume = max(0.0, raw_volume)
+    if raw_volume < 0:
+        st.warning(
+            f"The model estimated {raw_volume:,.2f} vehicles/hour, which is impossible. "
+            "The displayed value was adjusted to zero. This does not establish that the road is empty; "
+            "treat this estimate as unreliable."
+        )
     predicted_level_encoded = classifier.predict(features_df)[0]
     predicted_level = TRAFFIC_LEVEL_MAP[int(predicted_level_encoded)]
 

@@ -206,3 +206,19 @@ python -m unittest -v test_functional
 ```
 
 See [AUDIT_FIXES.md](AUDIT_FIXES.md) for exact changes, results, and limitations.
+
+### Prediction reliability warnings
+
+The app warns when temperature, rain, snow or cloud cover is outside the regressor's
+fitted training ranges. These bounds are saved from `X_train` during model training
+in `models/training_ranges.json`. A separate warning explains any negative estimate
+adjusted to zero: it is an unreliable estimate, not evidence of an empty road.
+Inputs remain unchanged; the warnings do not silently cap weather values.
+
+A `count:poisson` regressor was compared with the current squared-error settings on
+identical 64% training / 16% validation / 20% test partitions. Validation MAE was
+219.51 versus 208.73 and RMSE was 358.61 versus 339.61. Although Poisson produced
+no negatives across the dataset or 4,752 stress inputs, it did not meet the
+predeclared validation accuracy criteria, so the shipped regressor was retained.
+Run `python compare_nonnegative.py` to reproduce the comparison; it never
+overwrites model artifacts. Full results are in `nonnegative_comparison.json`.

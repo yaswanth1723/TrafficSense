@@ -14,6 +14,7 @@ import pandas as pd
 from sklearn.metrics import mean_absolute_error, r2_score, accuracy_score
 from sklearn.model_selection import train_test_split
 from streamlit.testing.v1 import AppTest
+from prediction_support import range_warnings
 
 ROOT = Path(__file__).resolve().parent
 # Read the actual feature function without executing Streamlit's top-level UI.
@@ -66,13 +67,16 @@ class FunctionalChecks(unittest.TestCase):
         with tempfile.TemporaryDirectory() as folder:
             try:
                 os.chdir(folder)
-                scope = dict(joblib=joblib, best_regressor=self.reg, best_classifier=self.clf)
+                X_train, _ = train_test_split(self.X, test_size=.2, random_state=42)
+                scope = dict(joblib=joblib, best_regressor=self.reg, best_classifier=self.clf, X_train=X_train)
                 for index in [22, 40]:
                     exec(''.join(nb['cells'][index]['source']), scope)
                 restored = joblib.load('models/xgb_regressor.pkl')
                 np.testing.assert_array_equal(restored.predict(self.X.iloc[:10]), self.reg.predict(self.X.iloc[:10]))
                 restored_clf = joblib.load('models/xgb_classifier.pkl')
                 np.testing.assert_array_equal(restored_clf.predict_proba(self.X.iloc[:10]), self.clf.predict_proba(self.X.iloc[:10]))
+                self.assertEqual(json.loads(Path('models/training_ranges.json').read_text()),
+                                 json.loads((ROOT / 'models/training_ranges.json').read_text()))
             finally:
                 os.chdir(previous)
 
@@ -117,6 +121,7 @@ class FunctionalChecks(unittest.TestCase):
                 at.button[0].click().run()
                 self.assertEqual(len(at.exception), 0)
                 self.assertEqual(len(at.metric), 1)
+                self.assertEqual(len(at.warning), 0)
                 for temp, rain, snow, clouds, weather in [(-40., 200., 50., 100, 'Snow'), (45., 200., 0., 0, 'Thunderstorm')]:
                     at.slider[0].set_value(temp)
                     at.slider[1].set_value(clouds)
@@ -127,6 +132,12 @@ class FunctionalChecks(unittest.TestCase):
                     at.button[0].click().run()
                     self.assertEqual(len(at.exception), 0)
                     self.assertFalse(at.metric[0].value.startswith('-'))
+                    warnings = '\n'.join(w.value for w in at.warning)
+                    self.assertIn('Temperature', warnings)
+                    self.assertIn('Rain', warnings)
+                    if snow > .51:
+                        self.assertIn('Snow', warnings)
+                    self.assertIn('outside the regressor training range', warnings)
                 # Exercise an actual negative model prediction through the real UI.
                 raw = self.reg.predict(self.X)
                 index = np.flatnonzero(raw < 0)[0]
@@ -144,10 +155,33 @@ class FunctionalChecks(unittest.TestCase):
                 at.button[0].click().run()
                 self.assertEqual(len(at.exception), 0)
                 self.assertEqual(at.metric[0].value, '0 vehicles/hour')
+                warnings = '\n'.join(w.value for w in at.warning)
+                self.assertIn('adjusted to zero', warnings)
+                self.assertIn('does not establish that the road is empty', warnings)
+                self.assertNotIn('outside the regressor training range', warnings)
                 print(f'UI negative regression case: {stamp}, raw={raw[index]:.2f}, displayed={at.metric[0].value}')
                 os.chdir(previous)
         finally:
             os.chdir(previous)
+
+    def test_range_warning_boundaries(self):
+        ranges = json.loads((ROOT / 'models/training_ranges.json').read_text())
+        for end in [0, 1]:
+            self.assertEqual(range_warnings({k: v[end] for k, v in ranges.items()}, ranges), [])
+        values = {k: v[0] for k, v in ranges.items()}
+        values.update(temp=233.15, rain_1h=200, snow_1h=50)
+        messages = range_warnings(values, ranges)
+        self.assertEqual(len(messages), 3)
+        self.assertIn('-40 °C', messages[0])
+        self.assertIn('0 to 0.51 mm', messages[2])
+        for feature in ranges:
+            for bound, delta in [(0, -.001), (1, .001)]:
+                values = {k: v[0] for k, v in ranges.items()}
+                values[feature] = ranges[feature][bound] + delta
+                self.assertEqual(len(range_warnings(values, ranges)), 1)
+        values['temp'] = float('nan')
+        with self.assertRaises(ValueError):
+            range_warnings(values, ranges)
 
 
 if __name__ == '__main__':

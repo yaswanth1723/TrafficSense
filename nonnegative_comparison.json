@@ -1,0 +1,53 @@
+{
+  "split_sizes": {
+    "train": 25968,
+    "validation": 6492,
+    "test": 8115
+  },
+  "selection_rule": "Poisson validation MAE <= squared-error MAE and RMSE <= 1.05 * squared-error RMSE; all predictions finite and nonnegative.",
+  "caveat": "Processed data uses full-data preprocessing and historical test results have already been inspected.",
+  "models": {
+    "squared_error": {
+      "validation": {
+        "mae": 208.73182678222656,
+        "rmse": 339.6096104352761,
+        "r2": 0.9706774950027466,
+        "raw_negative_count": 0
+      },
+      "test": {
+        "mae": 208.9625701904297,
+        "rmse": 333.1512771062119,
+        "r2": 0.9716682434082031,
+        "raw_negative_count": 1
+      },
+      "all_rows_finite": true,
+      "all_rows_min": -155.52877807617188,
+      "extreme_rows": 4752,
+      "extreme_finite": true,
+      "extreme_min": -969.337890625,
+      "extreme_negatives": 240
+    },
+    "poisson": {
+      "validation": {
+        "mae": 219.5112762451172,
+        "rmse": 358.61318166305597,
+        "r2": 0.9673041105270386,
+        "raw_negative_count": 0
+      },
+      "test": {
+        "mae": 219.0746307373047,
+        "rmse": 350.6217245836316,
+        "r2": 0.9686188697814941,
+        "raw_negative_count": 0
+      },
+      "all_rows_finite": true,
+      "all_rows_min": 244.02288818359375,
+      "extreme_rows": 4752,
+      "extreme_finite": true,
+      "extreme_min": 532.8935546875,
+      "extreme_negatives": 0
+    }
+  },
+  "poisson_passes_selection": false,
+  "shipped_model_changed": false
+}

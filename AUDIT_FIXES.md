@@ -1,5 +1,44 @@
 # TrafficSense functional review and fixes
 
+## Follow-up: reliability warnings and nonnegative model trial
+
+Added per-input warnings for temperature/rain/snow/cloud cover outside ranges fitted
+on the regressor's original 32,460 training rows. The training notebook now writes
+`models/training_ranges.json` and its tracked export is synchronized. Bounds are
+inclusive; Kelvin temperature bounds are shown as Celsius in the UI. Warnings
+update when controls change and do not alter inputs. Negative predictions now show
+the original negative estimate, disclose adjustment to zero, and explicitly state
+that this does not establish the road is empty. Nonfinite predictions still stop.
+
+Tested `count:poisson` versus `reg:squarederror` using the same 400 trees, depth 6,
+learning rate 0.05 and original sampling settings. Both candidates were trained
+fresh on the same 25,968 rows. A separate 6,492-row validation partition inside the
+original training pool determined the decision; the original 8,115-row test split
+was used for diagnostic reporting only. Selection required Poisson validation MAE
+no worse than baseline and RMSE no more than 5% worse, plus finite nonnegative
+predictions on the dataset and stress grid. These criteria were written before
+running the trial. No model artifacts were overwritten.
+
+| Candidate | Validation MAE | Validation RMSE | Test MAE | Test RMSE |
+|---|---:|---:|---:|---:|
+| Squared error | 208.73 | 339.61 | 208.96 | 333.15 |
+| Poisson | 219.51 | 358.61 | 219.07 | 350.62 |
+
+Poisson produced finite, nonnegative predictions on all 40,575 rows and all 4,752
+stress combinations, but failed the validation accuracy criteria. Retained the
+current shipped regressor (trained on 80%, so its previous reported scores are
+not directly comparable to these 64%-trained trial candidates). The classifier is
+unchanged. `compare_nonnegative.py` reproduces the trial and records its results in
+`nonnegative_comparison.json`. Nonnegative output alone does not demonstrate rare
+weather accuracy, and full-data preprocessing caveats still apply.
+
+All six functional tests passed, including no warnings for normal input, inclusive
+range boundaries, every input just beyond either boundary, NaN rejection,
+three weather warnings for extreme winter input, and a separate zero-adjustment
+warning for a real negative prediction entirely within the training ranges.
+
+---
+
 Reviewed 20 October 2026, base commit `2d2ebd7de1a9c5733ce3ca2dd46d6ce1e20d012a`.
 GitHub was fetched and the remote main commit matched this checkout. All changes
 are local; no commits, pushes, or deployment changes were made.
