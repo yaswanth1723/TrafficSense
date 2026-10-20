@@ -10,6 +10,7 @@ Only the production models are loaded:
 """
 
 import datetime as dt
+from pathlib import Path
 
 import joblib
 import numpy as np
@@ -53,6 +54,7 @@ US_HOLIDAYS = [
 
 TRAFFIC_LEVEL_MAP = {0: "Low", 1: "Moderate", 2: "High"}
 TRAFFIC_LEVEL_COLOR = {"Low": "#2E7D32", "Moderate": "#F9A825", "High": "#C62828"}
+MODEL_DIR = Path(__file__).resolve().parent / "models"
 
 
 # -----------------------------------------------------------------
@@ -60,8 +62,8 @@ TRAFFIC_LEVEL_COLOR = {"Low": "#2E7D32", "Moderate": "#F9A825", "High": "#C62828
 # -----------------------------------------------------------------
 @st.cache_resource
 def load_models():
-    regressor = joblib.load("models/xgb_regressor.pkl")
-    classifier = joblib.load("models/xgb_classifier.pkl")
+    regressor = joblib.load(MODEL_DIR / "xgb_regressor.pkl")
+    classifier = joblib.load(MODEL_DIR / "xgb_classifier.pkl")
     return regressor, classifier
 
 
@@ -125,20 +127,26 @@ def build_feature_row(
 # UI
 # -----------------------------------------------------------------
 st.title("🚦 TrafficSense")
-st.subheader("AI-Powered Traffic Volume & Traffic Condition Prediction")
+st.subheader("Hourly Traffic Volume & Volume Category Prediction")
 
 st.caption(
-    "Predict hourly traffic volume and traffic congestion level using XGBoost-based machine learning models trained on the Metro Interstate Traffic Volume dataset."
+    "Predict hourly traffic volume on westbound I-94 using weather and Minneapolis local time. "
+    "Volume categories are Low (up to 2,274), Moderate (up to 4,598), and High (above 4,598 vehicles/hour); "
+    "they do not measure congestion."
 )
 
-regressor, classifier = load_models()
+try:
+    regressor, classifier = load_models()
+except Exception as exc:
+    st.error(f"Could not load models. Install requirements.txt and run both notebooks from the project folder. Details: {exc}")
+    st.stop()
 
 st.subheader("Input Parameters")
 
 col1, col2 = st.columns(2)
 with col1:
     input_date = st.date_input("Date", value=dt.date.today())
-    holiday = st.selectbox("Holiday", options=US_HOLIDAYS, index=0)
+    holiday = st.selectbox("Holiday (manual date override)", options=US_HOLIDAYS, index=0)
     weather = st.selectbox("Weather", options=WEATHER_OPTIONS, index=0)
 with col2:
     input_time = st.time_input("Time", value=dt.time(hour=8, minute=0))
@@ -167,7 +175,11 @@ if st.button("Predict Traffic", type="primary", use_container_width=True):
 
     
 
-    predicted_volume = regressor.predict(features_df)[0]
+    raw_volume = float(regressor.predict(features_df)[0])
+    if not np.isfinite(raw_volume):
+        st.error("Prediction unavailable for these inputs.")
+        st.stop()
+    predicted_volume = max(0.0, raw_volume)
     predicted_level_encoded = classifier.predict(features_df)[0]
     predicted_level = TRAFFIC_LEVEL_MAP[int(predicted_level_encoded)]
 
@@ -184,7 +196,7 @@ if st.button("Predict Traffic", type="primary", use_container_width=True):
             <div style="padding: 0.7rem 1rem; border-radius: 0.5rem;
                         background-color: {TRAFFIC_LEVEL_COLOR[predicted_level]}20;
                         border: 1px solid {TRAFFIC_LEVEL_COLOR[predicted_level]};">
-                <span style="font-size: 0.85rem; color: gray;">Predicted Traffic Level</span><br>
+                <span style="font-size: 0.85rem; color: gray;">Independent classifier category</span><br>
                 <span style="font-size: 1.6rem; font-weight: 700;
                              color: {TRAFFIC_LEVEL_COLOR[predicted_level]};">
                     {predicted_level}
@@ -194,7 +206,8 @@ if st.button("Predict Traffic", type="primary", use_container_width=True):
             unsafe_allow_html=True,
         )
 
-    st.markdown("**Class probabilities**")
+    st.caption("The classifier estimates the category independently, so it can disagree with the predicted volume's category.")
+    st.markdown("**Independent classifier probabilities**")
     proba_df = pd.DataFrame(
         {"Traffic Level": ["Low", "Moderate", "High"], "Probability": level_proba}
     ).set_index("Traffic Level")

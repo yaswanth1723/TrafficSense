@@ -15,7 +15,7 @@
 ![Streamlit](https://img.shields.io/badge/Streamlit-App-red)
 
 
-An end-to-end machine learning project that predicts **hourly interstate traffic volume** and **traffic congestion level** using historical weather and time data, deployed as an interactive Streamlit web application.
+An end-to-end machine learning project that predicts **hourly interstate traffic volume** and **traffic volume category** using historical weather and time data, deployed as an interactive Streamlit web application.
 
 ---
 
@@ -24,7 +24,7 @@ An end-to-end machine learning project that predicts **hourly interstate traffic
 This project builds a complete, production-style ML pipeline — from raw data to a deployed prediction app — around the Metro Interstate Traffic Volume dataset. It solves two related but distinct problems:
 
 - **Regression** — predict the exact hourly traffic volume (vehicle count).
-- **Classification** — predict a categorical traffic congestion level (`Low`, `Moderate`, `High`).
+- **Classification** — predict a categorical traffic volume category (`Low`, `Moderate`, `High`).
 
 The project follows a clean, reproducible structure: preprocessing and EDA are separated from model training, only the best-performing model per task is persisted, and the deployed app loads exclusively those final models.
 
@@ -57,7 +57,7 @@ The raw dataset (48,204 rows) contained known data quality issues — a literal 
 Traffic congestion is influenced by a combination of time-based patterns (rush hour, weekday vs. weekend, seasonality) and weather conditions. This project frames traffic prediction as two supervised learning tasks:
 
 1. **Regression:** `traffic_volume` — a continuous target, useful for precise flow estimation.
-2. **Classification:** `traffic_level` — a derived 3-class target (`Low` / `Moderate` / `High`), useful for simpler, actionable congestion alerts.
+2. **Classification:** `traffic_level` — a derived 3-class target (`Low` / `Moderate` / `High`), useful for an independent estimate of the hourly volume category.
 
 ---
 
@@ -66,7 +66,7 @@ Traffic congestion is influenced by a combination of time-based patterns (rush h
 After cleaning and feature engineering, the model-ready dataset includes:
 
 - **Weather features:** `temp`, `rain_1h`, `snow_1h`, `clouds_all`, one-hot encoded `weather_main`
-- **Calendar features:** `year`, `month`, `day`, `hour`, `day_of_week`, `is_weekend`, `is_holiday`
+- **Calendar features:** `month`, `day`, `hour`, `day_of_week`, `is_weekend`, `is_holiday`
 - **Cyclical time features:** `hour_sin`/`hour_cos`, `month_sin`/`month_cos` — encode hour and month on a circular scale so, e.g., 11 PM and midnight are recognized as adjacent
 - **Derived target:** `traffic_level` (Low / Moderate / High), built from quantile (tercile) thresholds on `traffic_volume`
 
@@ -106,16 +106,16 @@ All models are trained on an 80/20 train-test split (stratified for classificati
 
 | Model | MAE | RMSE | R² |
 |---|---|---|---|
-| Linear Regression | 817.40 | 1052.35 | 0.7173 |
-| **XGBoost Regressor** | **202.58** | **335.40** | **0.9713** |
+| Linear Regression | 809.58 | 1033.94 | 0.7271 |
+| **XGBoost Regressor** | **205.86** | **328.88** | **0.9724** |
 
 ### Classification
 
 | Model | Accuracy | Precision | Recall | F1 |
 |---|---|---|---|---|
-| Decision Tree | 0.9001 | 0.9002 | 0.9001 | 0.8998 |
-| Random Forest | 0.9134 | 0.9136 | 0.9134 | 0.9131 |
-| **XGBoost Classifier** | **0.9235** | **0.9235** | **0.9235** | **0.9233** |
+| Decision Tree | 0.9013 | 0.9011 | 0.9013 | 0.9011 |
+| Random Forest | 0.9119 | 0.9119 | 0.9119 | 0.9116 |
+| **XGBoost Classifier** | **0.9193** | **0.9193** | **0.9193** | **0.9191** |
 
 ---
 
@@ -123,8 +123,8 @@ All models are trained on an 80/20 train-test split (stratified for classificati
 
 | Task | Selected Model | Why |
 |---|---|---|
-| Regression | **XGBoost Regressor** | Highest R² (0.9713) and lowest MAE/RMSE among candidates — captures non-linear interactions between time and weather features that Linear Regression cannot. |
-| Classification | **XGBoost Classifier** | Highest weighted F1 score (0.9233), balancing precision and recall across all three traffic-level classes better than Decision Tree or Random Forest. |
+| Regression | **XGBoost Regressor** | Highest R² (0.9724) and lowest MAE/RMSE among candidates — captures non-linear interactions between time and weather features that Linear Regression cannot. |
+| Classification | **XGBoost Classifier** | Highest weighted F1 score (0.9191), balancing precision and recall across all three traffic-level classes better than Decision Tree or Random Forest. |
 
 Only these two models are saved (`models/xgb_regressor.pkl`, `models/xgb_classifier.pkl`) and loaded by the deployed app — no other candidate models are persisted or shipped.
 
@@ -179,3 +179,28 @@ Then open the local URL Streamlit prints (typically `http://localhost:8501`) in 
 ## 📄 License
 
 This project is open source and available for personal and educational use.
+
+
+## Functional fixes and verification (20 October 2026)
+
+Use the pinned XGBoost 3.3.0 runtime with the regenerated artifacts. Run the notebooks
+from the project root. Holiday markers now apply to all recorded hours on that date;
+the app's holiday input remains a manual override. Regression evaluation and display
+both clamp negative counts to zero.
+
+Low means volume <= 2,274, Moderate means volume <= 4,598, and High means above 4,598.
+These are volume categories, not measured congestion. The classifier is independent
+of the regressor, so its estimate can disagree with the displayed volume's category.
+
+The tables above describe the rebuilt artifacts on the original random 80/20 splits.
+Preprocessing statistics and category boundaries still use the full dataset, and
+the test split is still used to select candidates. Treat these as project comparison
+scores, not an untouched final or future forecasting evaluation.
+
+Run functional checks after installing requirements:
+
+```bash
+python -m unittest -v test_functional
+```
+
+See [AUDIT_FIXES.md](AUDIT_FIXES.md) for exact changes, results, and limitations.
